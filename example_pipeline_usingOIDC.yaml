@@ -1,0 +1,65 @@
+trigger:
+    - master
+
+pool:
+    vmImage: ubuntu-latest
+
+steps:
+    - script: sudo apt-get install -y awscli
+      displayName: Install AWS CLI
+    - task: AWSTemporaryCredentials@1
+      displayName: 'Getting STS Credentials'
+      inputs:
+          azureSubscription: 'azuredo-poc'
+          regionName: 'ca-central-1'
+          assumeRole: arn:aws:iam::613110753423:role/azdo-s3-read
+
+    - task: AWSShellScript@1
+      displayName: 'AWS Shell script no awsCredentials'
+      continueOnError: true
+      inputs:
+          regionName: 'ca-central-1'
+          scriptType: inline
+          inlineScript: |
+              export
+              aws sts get-caller-identity
+              aws s3 ls
+
+    - task: Bash@3
+      displayName: 'Using bash script task with regular export'
+      continueOnError: true
+      inputs:
+          targetType: 'inline'
+          # filePath: # string. Required when targetType = filePath. Script Path.
+          # arguments: # string. Optional. Use when targetType = filePath. Arguments.
+          script: |
+              ls -l
+              export
+              export AWS_ACCESS_KEY_ID=$(AWS.ACCESS_KEY_ID)
+              export AWS_SECRET_ACCESS_KEY=$(AWS.SECRET_ACCESS_KEY)
+              export AWS_SESSION_TOKEN=$(AWS.SESSION_TOKEN)
+              export
+              aws --debug sts get-caller-identity --region ca-central-1
+              #aws sts assume-role-with-web-identity --role-arn arn:aws:iam::613110753423:role/azdo-s3-read --role-session-name AzDo --web-identity-token $idToken --region ca-central-1 2>&1
+              aws s3 ls --region ca-central-1
+          #workingDirectory: # string. Working Directory.
+          #failOnStderr: false # boolean. Fail on Standard Error. Default: false.
+          #bashEnvValue: # string. Set value for BASH_ENV environment variable.
+      # Advanced
+    - task: AWSCLI@1
+      displayName: 'via AWSCLI: Running aws-cli get-caller-identity '
+      continueOnError: true
+      inputs:
+          regionName: 'ca-central-1'
+          awsCommand: 'sts'
+          awsSubCommand: 'get-caller-identity'
+    - task: AWSShellScript@1
+      displayName: 'via AWSShellScript : Running aws-cli get-caller-identity'
+      continueOnError: true
+      inputs:
+          regionName: 'ca-central-1'
+          scriptType: inline
+          inlineScript: |
+              export
+              aws sts get-caller-identity
+              aws s3 ls
